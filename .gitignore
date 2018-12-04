@@ -1,0 +1,8 @@
+.idea
+.ipynb_checkpoints/
+.project
+.gradle
+data/
+out/
+*.iml
+*.mp4
