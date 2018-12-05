@@ -20,6 +20,8 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,7 +39,7 @@ public class VideoTest {
     public void testWriteVideoToPravega() throws Exception {
         URI controllerURI = URI.create("tcp://localhost:9090");
         StreamManager streamManager = StreamManager.create(controllerURI);
-        String scope = "video5";
+        String scope = "video9";
         streamManager.createScope(scope);
         String streamName = "stream1";
         StreamConfiguration streamConfig = StreamConfiguration.builder()
@@ -49,15 +51,27 @@ public class VideoTest {
         ByteStreamClient byteStreamClient = clientFactory.createByteStreamClient();
         @Cleanup
         ByteStreamWriter writer = byteStreamClient.createByteStreamWriter(streamName);
-//        File file = new File("../Wildlife.mp4");   // https://archive.org/download/WildlifeSampleVideo/Wildlife.mp4
-        File file = new File("../bike.mp4");
-        long fileLength = file.length();
+        @Cleanup
         DataOutputStream dos = new DataOutputStream(writer);
-        dos.writeLong(fileLength);
-        long bytesWritten = Files.copy(file.toPath(), dos);
-        assertEquals(bytesWritten, fileLength);
-        dos.close();
-        log.info("Wrote {} bytes from {}", bytesWritten, file);
+        log.info("tailOffset={}", writer.fetchTailOffset());
+
+        List<String> fileNames = new ArrayList<>();
+        fileNames.add("../small.mp4");          // http://techslides.com/demos/sample-videos/small.mp4
+        fileNames.add("../small.mp4");          // http://techslides.com/demos/sample-videos/small.mp4
+        fileNames.add("../Wildlife.mp4");       // https://archive.org/download/WildlifeSampleVideo/Wildlife.mp4
+        fileNames.add("../bike.mp4");           // 221 MB 2K video
+
+        for (String fileName : fileNames) {
+            File file = new File(fileName);
+            long fileLength = file.length();
+            log.info("Writing {} bytes from {}", fileLength, file);
+            dos.writeLong(fileLength);
+            long bytesWritten = Files.copy(file.toPath(), dos);
+            assertEquals(bytesWritten, fileLength);
+            dos.flush();
+            log.info("Finished writing {} bytes from {}", bytesWritten, file);
+            log.info("tailOffset={}", writer.fetchTailOffset());
+        }
     }
 
     /**
@@ -70,7 +84,7 @@ public class VideoTest {
     public void testReadVideoFromPravega() throws Exception {
         URI controllerURI = URI.create("tcp://localhost:9090");
         StreamManager streamManager = StreamManager.create(controllerURI);
-        String scope = "video5";
+        String scope = "video9";
         streamManager.createScope(scope);
         String streamName = "stream1";
         StreamConfiguration streamConfig = StreamConfiguration.builder()
@@ -86,10 +100,10 @@ public class VideoTest {
         DataInputStream dis = new DataInputStream(reader);
 
         for (;;) {
-            long offset = reader.getOffset();
             // This will block until the length of the next chunk has been written to Pravega.
             long dataLength = dis.readLong();
-            log.info("offset={}, dataLength={}", offset, dataLength);
+            long dataOffset = reader.getOffset();
+            log.info("dataOffset={}, dataLength={}", dataOffset, dataLength);
             PravegaAdapter adapter = new PravegaAdapter(reader, dataLength);
             FrameGrab grab = FrameGrab.createFrameGrab(adapter);
             Picture picture;
@@ -101,7 +115,7 @@ public class VideoTest {
             }
             log.info("Finished reading chunk");
             // We need to reposition the Pravega reader because FrameGrab may not finish at the end of the chunk.
-            reader.seekToOffset(offset + dataLength);
+            reader.seekToOffset(dataOffset + dataLength);
         }
     }
 
