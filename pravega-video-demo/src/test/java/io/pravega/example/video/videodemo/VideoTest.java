@@ -19,6 +19,7 @@ import io.pravega.client.stream.ScalingPolicy;
 import io.pravega.client.stream.StreamConfiguration;
 import lombok.Cleanup;
 import org.jcodec.api.FrameGrab;
+import org.jcodec.api.MediaInfo;
 import org.jcodec.common.model.Picture;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -126,6 +127,48 @@ public class VideoTest {
             }
             log.info("Finished reading chunk");
             // We need to reposition the Pravega reader because FrameGrab may not finish at the end of the chunk.
+            reader.seekToOffset(dataOffset + dataLength);
+        }
+    }
+
+    /**
+     * This demonstrates the ability to read only the header of each video to quickly summarize the contents of a stream.
+     */
+    @Ignore()
+    @Test
+    public void testSummarizeVideo() throws Exception {
+        URI controllerURI = URI.create("tcp://localhost:9090");
+        StreamManager streamManager = StreamManager.create(controllerURI);
+        String scope = "video9";
+        streamManager.createScope(scope);
+        String streamName = "stream1";
+        StreamConfiguration streamConfig = StreamConfiguration.builder()
+                .scalingPolicy(ScalingPolicy.fixed(1))
+                .build();
+        streamManager.createStream(scope, streamName, streamConfig);
+        @Cleanup
+        ClientFactory clientFactory = ClientFactory.withScope(scope, controllerURI);
+        ByteStreamClient byteStreamClient = clientFactory.createByteStreamClient();
+        @Cleanup
+        ByteStreamReader reader = byteStreamClient.createByteStreamReader(streamName);
+        @Cleanup
+        DataInputStream dis = new DataInputStream(reader);
+
+        long tailOffset = reader.fetchTailOffset();
+        for (int chunkIndex = 0 ; ; chunkIndex++) {
+            if (reader.getOffset() >= tailOffset) {
+                log.info("Reached the end of the stream.");
+                break;
+            }
+            long dataLength = dis.readLong();
+            long dataOffset = reader.getOffset();
+            log.info("dataOffset={}, dataLength={}, chunkIndex={}", dataOffset, dataLength, chunkIndex);
+            if (true) {
+                PravegaSeekableByteChannelAdapter adapter = new PravegaSeekableByteChannelAdapter(reader, dataLength);
+                FrameGrab grab = FrameGrab.createFrameGrab(adapter);
+                final MediaInfo mediaInfo = grab.getMediaInfo();
+                log.info("mediaInfo={}x{}", mediaInfo.getDim().getWidth(), mediaInfo.getDim().getHeight());
+            }
             reader.seekToOffset(dataOffset + dataLength);
         }
     }
