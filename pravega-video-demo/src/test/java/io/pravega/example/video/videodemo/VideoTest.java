@@ -56,7 +56,7 @@ public class VideoTest {
         log.info("tailOffset={}", writer.fetchTailOffset());
 
         List<String> fileNames = new ArrayList<>();
-        for (int i = 0 ; i < 10 ; i++) {
+        for (int i = 0 ; i < 20 ; i++) {
             fileNames.add("../small.mp4");          // http://techslides.com/demos/sample-videos/small.mp4
             fileNames.add("../Wildlife.mp4");       // https://archive.org/download/WildlifeSampleVideo/Wildlife.mp4
             fileNames.add("../bike.mp4");           // 221 MB 2K video
