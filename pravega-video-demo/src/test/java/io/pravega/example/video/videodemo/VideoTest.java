@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2018 Dell Inc., or its subsidiaries. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ */
 package io.pravega.example.video.videodemo;
 
 import io.pravega.client.ClientFactory;
@@ -105,14 +115,14 @@ public class VideoTest {
             long dataLength = dis.readLong();
             long dataOffset = reader.getOffset();
             log.info("dataOffset={}, dataLength={}", dataOffset, dataLength);
-            PravegaAdapter adapter = new PravegaAdapter(reader, dataLength);
+            PravegaSeekableByteChannelAdapter adapter = new PravegaSeekableByteChannelAdapter(reader, dataLength);
             FrameGrab grab = FrameGrab.createFrameGrab(adapter);
             Picture picture;
             long frameNumber = 0;
             while (null != (picture = grab.getNativeFrame())) {
                 frameNumber++;
                 log.info("frame {} {}x{} {}", frameNumber, picture.getWidth(), picture.getHeight(), picture.getColor());
-                // TODO: process the video frame here
+                // Process the video frame here
             }
             log.info("Finished reading chunk");
             // We need to reposition the Pravega reader because FrameGrab may not finish at the end of the chunk.

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2018 Dell Inc., or its subsidiaries. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ */
 package io.pravega.example.video.videodemo;
 
 import io.pravega.client.byteStream.ByteStreamReader;
@@ -6,12 +16,19 @@ import org.jcodec.common.io.SeekableByteChannel;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class PravegaAdapter implements SeekableByteChannel {
+/**
+ * A SeekableByteChannel that JCodec can use to read video from a Pravega stream.
+ */
+public class PravegaSeekableByteChannelAdapter implements SeekableByteChannel {
     private ByteStreamReader reader;
     private long size;
     private long offset;
 
-    public PravegaAdapter(ByteStreamReader reader, long size) {
+    /**
+     * @param reader The Pravega stream. It should be positioned at the beginning of the video.
+     * @param size The size of the video as reported to JCodec.
+     */
+    public PravegaSeekableByteChannelAdapter(ByteStreamReader reader, long size) {
         this.reader = reader;
         this.size = size;
         this.offset = reader.getOffset();
